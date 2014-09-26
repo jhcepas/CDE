@@ -427,8 +427,29 @@ static int ignore_path(char* filename, struct tcb* tcp) {
     }
   }
 
+  /* Exact subtr ignore overrides any redirect rule. This way I can redirect a
+     whole prefix while ignoring some parts within it. In example:
 
-  // redirect paths override ignore paths
+     redirect_prefix=/etc
+     ignore_exact=/etc/passwd 
+
+     hack present in CDE from at http://github.com/jhcepas/CDE
+  */
+  for (i = 0; i < ignore_exact_paths_ind; i++) {
+    if (strcmp(filename, ignore_exact_paths[i]) == 0) {
+      //printf("1, %s %s", filename, ignore_exact_paths[i]);
+      return 1;
+    }
+  }
+  for (i = 0; i < ignore_substr_paths_ind; i++) {
+    if (strstr(filename, ignore_substr_paths[i])) {
+      //printf("2, %s %s", filename, ignore_substr_paths[i]);
+      return 1;
+    }
+  }
+
+
+  // redirect paths override the rest ignore paths
   for (i = 0; i < redirect_exact_paths_ind; i++) {
     if (strcmp(filename, redirect_exact_paths[i]) == 0) {
       return 0;
@@ -446,23 +467,16 @@ static int ignore_path(char* filename, struct tcb* tcp) {
     }
   }
 
-
-  for (i = 0; i < ignore_exact_paths_ind; i++) {
-    if (strcmp(filename, ignore_exact_paths[i]) == 0) {
-      return 1;
-    }
-  }
+  // ignore prefix paths
   for (i = 0; i < ignore_prefix_paths_ind; i++) {
     char* p = ignore_prefix_paths[i];
     if (strncmp(filename, p, strlen(p)) == 0) {
       return 1;
     }
   }
-  for (i = 0; i < ignore_substr_paths_ind; i++) {
-    if (strstr(filename, ignore_substr_paths[i])) {
-      return 1;
-    }
-  }
+
+
+
 
   if (cde_exec_from_outside_cderoot) {
     // if we're running cde-exec from OUTSIDE of cde-root/, then adopt a
